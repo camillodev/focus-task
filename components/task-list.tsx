@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { useTaskStore, Task, getPriorityDetails } from '@/lib/store'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Flag, GripVertical, MoreHorizontal } from 'lucide-react'
+import { Flag, GripVertical, MoreHorizontal, Focus } from 'lucide-react'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,7 @@ export function TaskList({ tasks }: TaskListProps) {
   const toggleTask = useTaskStore((state) => state.toggleTask)
   const reorderTasks = useTaskStore((state) => state.reorderTasks)
   const deleteTask = useTaskStore((state) => state.deleteTask)
+  const startFocusMode = useTaskStore((state) => state.startFocusMode)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
 
   const handleDragEnd = useCallback((result: DropResult) => {
@@ -50,6 +51,7 @@ export function TaskList({ tasks }: TaskListProps) {
                 onToggle={toggleTask}
                 onEdit={() => setEditingTask(task)}
                 onDelete={() => deleteTask(task.id)}
+                onStartFocus={() => startFocusMode(task.id)}
               />
             ))}
             {provided.placeholder}
@@ -73,9 +75,10 @@ interface TaskItemProps {
   onToggle: (id: string) => void
   onEdit: () => void
   onDelete: () => void
+  onStartFocus: (id: string) => void
 }
 
-function TaskItem({ task, index, onToggle, onEdit, onDelete }: TaskItemProps) {
+function TaskItem({ task, index, onToggle, onEdit, onDelete, onStartFocus }: TaskItemProps) {
   const priorityDetails = getPriorityDetails(task.priority)
 
   return (
@@ -127,6 +130,10 @@ function TaskItem({ task, index, onToggle, onEdit, onDelete }: TaskItemProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onEdit}>Editar</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStartFocus(task.id)}>
+                <Focus className="mr-2 h-4 w-4" />
+                Focus Mode
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onDelete}>Excluir</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

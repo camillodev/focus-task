@@ -19,6 +19,21 @@ export interface Project {
   color: string
 }
 
+interface FocusSettings {
+  workDuration: number; // in minutes
+  breakDuration: number; // in minutes
+  longBreakDuration: number; // in minutes
+  sessionsUntilLongBreak: number;
+}
+
+interface FocusState {
+  isActive: boolean;
+  currentTaskId: string | null;
+  settings: FocusSettings;
+  currentSession: number;
+  isBreak: boolean;
+}
+
 interface TaskStore {
   tasks: Task[]
   projects: Project[]
@@ -30,24 +45,15 @@ interface TaskStore {
   addProject: (name: string, color: string) => void
   editProject: (id: string, updatedProject: Partial<Omit<Project, 'id'>>) => void
   deleteProject: (id: string) => void
-  getInboxTasks: () => Task[]
-  getTodayTasks: () => Task[]
-  getProjectTasks: (projectId: string) => Task[]
-  getInboxCount: () => number
-  getTodayCount: () => number
-  getProjectCount: (projectId: string) => number
+  focusState: FocusState;
+  focusSettings: FocusSettings;
+  setFocusSettings: (settings: Partial<FocusSettings>) => void;
+  startFocusMode: (taskId: string) => void;
+  stopFocusMode: () => void;
+  skipTask: () => void;
+  completeCurrentTask: () => void;
+  startBreak: () => void;
 }
-
-export const projectColors = [
-  { name: 'Vermelho', value: 'red' },
-  { name: 'Laranja', value: 'orange' },
-  { name: 'Amarelo', value: 'yellow' },
-  { name: 'Verde', value: 'green' },
-  { name: 'Azul', value: 'blue' },
-  { name: 'Índigo', value: 'indigo' },
-  { name: 'Violeta', value: 'violet' },
-  { name: 'Rosa', value: 'pink' },
-]
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
@@ -107,31 +113,97 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       projects: state.projects.filter((project) => project.id !== id),
       tasks: state.tasks.filter((task) => task.projectId !== id),
     })),
-  getInboxTasks: () => {
-    const state = get()
-    return state.tasks.filter(task => task.projectId === null)
+  focusSettings: {
+    workDuration: 25,
+    breakDuration: 5,
+    longBreakDuration: 15,
+    sessionsUntilLongBreak: 4,
   },
-  getTodayTasks: () => {
-    const state = get()
-    return state.tasks.filter(task => task.dueDate && isToday(task.dueDate))
+  focusState: {
+    isActive: false,
+    currentTaskId: null,
+    settings: {
+      workDuration: 25,
+      breakDuration: 5,
+      longBreakDuration: 15,
+      sessionsUntilLongBreak: 4,
+    },
+    currentSession: 0,
+    isBreak: false,
   },
-  getProjectTasks: (projectId: string) => {
-    const state = get()
-    return state.tasks.filter(task => task.projectId === projectId)
+  setFocusSettings: (settings) =>
+    set((state) => ({
+      focusSettings: { ...state.focusSettings, ...settings },
+      focusState: {
+        ...state.focusState,
+        settings: { ...state.focusState.settings, ...settings },
+      },
+    })),
+  startFocusMode: (taskId) =>
+    set((state) => ({
+      focusState: {
+        ...state.focusState,
+        isActive: true,
+        currentTaskId: taskId,
+        currentSession: state.focusState.currentSession + 1,
+        isBreak: false,
+      },
+    })),
+  stopFocusMode: () =>
+    set((state) => ({
+      focusState: {
+        ...state.focusState,
+        isActive: false,
+        currentTaskId: null,
+        currentSession: 0,
+        isBreak: false,
+      },
+    })),
+  skipTask: () => {
+    const state = get();
+    const tasks = state.tasks.filter((t) => !t.completed);
+    const currentIndex = tasks.findIndex((t) => t.id === state.focusState.currentTaskId);
+    const nextTask = tasks[currentIndex + 1];
+    
+    if (nextTask) {
+      set((state) => ({
+        focusState: {
+          ...state.focusState,
+          currentTaskId: nextTask.id,
+          isBreak: false,
+          currentSession: state.focusState.currentSession,
+        },
+      }));
+    } else {
+      state.stopFocusMode();
+    }
   },
-  getInboxCount: () => {
-    const state = get()
-    return state.tasks.filter(task => task.projectId === null && !task.completed).length
+  completeCurrentTask: () => {
+    const state = get();
+    if (state.focusState.currentTaskId) {
+      state.toggleTask(state.focusState.currentTaskId);
+      state.skipTask();
+    }
   },
-  getTodayCount: () => {
-    const state = get()
-    return state.tasks.filter(task => task.dueDate && isToday(task.dueDate) && !task.completed).length
-  },
-  getProjectCount: (projectId: string) => {
-    const state = get()
-    return state.tasks.filter(task => task.projectId === projectId && !task.completed).length
-  },
+  startBreak: () =>
+    set((state) => ({
+      focusState: {
+        ...state.focusState,
+        isBreak: true,
+      },
+    })),
 }))
+
+export const projectColors = [
+  { name: 'Vermelho', value: 'red' },
+  { name: 'Laranja', value: 'orange' },
+  { name: 'Amarelo', value: 'yellow' },
+  { name: 'Verde', value: 'green' },
+  { name: 'Azul', value: 'blue' },
+  { name: 'Índigo', value: 'indigo' },
+  { name: 'Violeta', value: 'violet' },
+  { name: 'Rosa', value: 'pink' },
+]
 
 export interface PriorityDetails {
   color: string

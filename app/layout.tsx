@@ -1,7 +1,9 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from '../components/theme-provider'
 import { AppSidebar } from '../components/app-sidebar'
+import { Toaster } from '@/components/ui/toaster'
+import { FocusModeButton } from '@/components/focus-mode-button'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,6 +31,7 @@ export default function RootLayout({
             <main className="flex-1 overflow-auto">
               {children}
             </main>
+            <Toaster />
           </div>
         </ThemeProvider>
       </body>

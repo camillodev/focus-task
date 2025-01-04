@@ -4,6 +4,7 @@ import { TaskList } from '@/components/task-list'
 import { TaskInput } from '@/components/task-input'
 import { useTaskStore } from '@/lib/store'
 import { useMemo } from 'react'
+import { FocusModeButton } from '@/components/focus-mode-button'
 
 export default function Home() {
   const tasks = useTaskStore((state) => state.tasks)
@@ -14,18 +15,16 @@ export default function Home() {
   }, [tasks])
 
   return (
-    <div className="h-full">
-      <header className="flex h-14 items-center border-b px-4">
+    <>
+      <div className="flex items-center justify-between h-14 border-b px-4">
         <h1 className="text-xl font-semibold">Hoje</h1>
-        <span className="ml-2 text-sm text-muted-foreground">
-          {todayTasks.length} {todayTasks.length === 1 ? 'tarefa' : 'tarefas'}
-        </span>
-      </header>
+        <FocusModeButton />
+      </div>
       <div className="p-4">
         <TaskList tasks={todayTasks} />
         <TaskInput defaultProject={null} />
       </div>
-    </div>
+    </>
   )
 }
 
